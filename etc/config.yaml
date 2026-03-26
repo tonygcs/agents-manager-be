@@ -1,0 +1,8 @@
+workerd:
+  addr: "localhost:50051"
+
+server:
+  addr: ":8080"
+
+github:
+  token: "<your-token-here>"
