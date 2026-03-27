@@ -11,7 +11,7 @@ import (
 )
 
 type deployRequest struct {
-	WorkerName string `json:"workerName"`
+	WorkerName WorkerType `json:"workerName"`
 }
 
 type deployResponse struct {
@@ -19,8 +19,8 @@ type deployResponse struct {
 }
 
 // workerOptions maps a worker name to a function that builds DeployOptions for a given container name and env.
-var workerOptions = map[string]func(name string, env []string) client.DeployOptions{
-	"opencode-node": func(name string, env []string) client.DeployOptions {
+var workerOptions = map[WorkerType]func(name string, env []string) client.DeployOptions{
+	WorkerTypeOpencodeNode: func(name string, env []string) client.DeployOptions {
 		return client.DeployOptions{
 			Image: "opencode-worker-node:latest",
 			Name:  name,
@@ -31,6 +31,14 @@ var workerOptions = map[string]func(name string, env []string) client.DeployOpti
 				"traefik.http.routers." + name + ".rule":                      "Host(`" + name + ".localhost`)",
 				"traefik.http.services." + name + ".loadbalancer.server.port": "4096",
 			},
+		}
+	},
+	WorkerTypeCountdown: func(name string, env []string) client.DeployOptions {
+		return client.DeployOptions{
+			Image: "debian:latest",
+			Name:  name,
+			Cmd:   []string{"bash", "-c", "for i in $(seq 1 30); do echo \"tick $i\"; sleep 1; done"},
+			Env:   env,
 		}
 	},
 }
@@ -68,12 +76,12 @@ func (h *DeployHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	result, err := h.client.Deploy(r.Context(), buildOptions(name, env))
 	if err != nil {
-		log.Printf("deploy failed for worker %s: %v", req.WorkerName, err)
+		log.Printf("deploy failed for worker %s: %v", string(req.WorkerName), err)
 		http.Error(w, "deploy failed", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("deployed worker %s: container %s", req.WorkerName, result.ID)
+	log.Printf("deployed worker %s: container %s", string(req.WorkerName), result.ID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(deployResponse{ContainerID: result.ID})
 }

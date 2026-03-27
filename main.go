@@ -22,6 +22,7 @@ func main() {
 	}
 	defer workerdClient.Close()
 
+	http.Handle("/workers", handler.NewWorkersHandler())
 	http.Handle("/deploy", handler.NewDeployHandler(workerdClient, cfg.GitHub.Token))
 	http.Handle("/containers", handler.NewContainersHandler(workerdClient))
 	http.Handle("/containers/", handler.NewLogsHandler(workerdClient))
