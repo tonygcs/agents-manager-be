@@ -1,0 +1,48 @@
+package handler
+
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+
+	"github.com/algorath-software/workerd/pkg/client"
+)
+
+type containerItem struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Image string `json:"image"`
+}
+
+type ContainersHandler struct {
+	client *client.Client
+}
+
+func NewContainersHandler(c *client.Client) *ContainersHandler {
+	return &ContainersHandler{client: c}
+}
+
+func (h *ContainersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	containers, err := h.client.List(r.Context())
+	if err != nil {
+		log.Printf("list containers failed: %v", err)
+		http.Error(w, "failed to list containers", http.StatusInternalServerError)
+		return
+	}
+
+	var list []containerItem
+	for _, c := range containers {
+		list = append(list, containerItem{ID: c.ID, Name: c.Name, Image: c.Image})
+	}
+	if list == nil {
+		list = []containerItem{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(list)
+}

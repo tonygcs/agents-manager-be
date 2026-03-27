@@ -23,6 +23,8 @@ func main() {
 	defer workerdClient.Close()
 
 	http.Handle("/deploy", handler.NewDeployHandler(workerdClient, cfg.GitHub.Token))
+	http.Handle("/containers", handler.NewContainersHandler(workerdClient))
+	http.Handle("/containers/", handler.NewLogsHandler(workerdClient))
 
 	log.Printf("server listening on %s", cfg.Server.Addr)
 	log.Fatal(http.ListenAndServe(cfg.Server.Addr, nil))
