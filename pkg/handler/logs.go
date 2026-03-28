@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/algorath-software/workerd/pkg/client"
 )
@@ -23,22 +22,7 @@ func NewLogsHandler(c *client.Client) *LogsHandler {
 }
 
 func (h *LogsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// path: /containers/{id}/logs
-	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	if len(parts) != 3 || parts[0] != "containers" || parts[2] != "logs" {
-		http.Error(w, "not found", http.StatusNotFound)
-		return
-	}
-	containerID := parts[1]
-	if containerID == "" {
-		http.Error(w, "missing container id", http.StatusBadRequest)
-		return
-	}
+	containerID := r.PathValue("id")
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {

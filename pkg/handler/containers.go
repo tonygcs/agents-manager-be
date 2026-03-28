@@ -23,11 +23,6 @@ func NewContainersHandler(c *client.Client) *ContainersHandler {
 }
 
 func (h *ContainersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	containers, err := h.client.List(r.Context())
 	if err != nil {
 		log.Printf("list containers failed: %v", err)

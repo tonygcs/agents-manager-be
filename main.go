@@ -22,11 +22,13 @@ func main() {
 	}
 	defer workerdClient.Close()
 
-	http.Handle("/workers", handler.NewWorkersHandler())
-	http.Handle("/deploy", handler.NewDeployHandler(workerdClient, cfg.GitHub.Token))
-	http.Handle("/containers", handler.NewContainersHandler(workerdClient))
-	http.Handle("/containers/", handler.NewLogsHandler(workerdClient))
+	mux := http.NewServeMux()
+	mux.Handle("GET /workers", handler.NewWorkersHandler())
+	mux.Handle("POST /deploy", handler.NewDeployHandler(workerdClient, cfg.GitHub.Token))
+	mux.Handle("GET /containers", handler.NewContainersHandler(workerdClient))
+	mux.Handle("GET /containers/{id}/logs", handler.NewLogsHandler(workerdClient))
+	mux.Handle("DELETE /containers/{id}", handler.NewRemoveHandler(workerdClient))
 
 	log.Printf("server listening on %s", cfg.Server.Addr)
-	log.Fatal(http.ListenAndServe(cfg.Server.Addr, nil))
+	log.Fatal(http.ListenAndServe(cfg.Server.Addr, mux))
 }
