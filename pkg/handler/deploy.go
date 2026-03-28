@@ -24,7 +24,7 @@ var workerOptions = map[WorkerType]func(name string, env []string) client.Deploy
 		return client.DeployOptions{
 			Image: "opencode-worker-node:latest",
 			Name:  name,
-			Cmd:   []string{"opencode", "web", "--hostname", "0.0.0.0", "--mdns-domain", fmt.Sprintf("%s.localhost", name)},
+			Cmd:   []string{"sh", "-c", fmt.Sprintf("trap 'exit 0' TERM; opencode web --hostname 0.0.0.0 --mdns-domain %s.localhost & wait $!", name)},
 			Env:   env,
 			Labels: map[string]string{
 				"traefik.enable":                                              "true",
@@ -37,7 +37,7 @@ var workerOptions = map[WorkerType]func(name string, env []string) client.Deploy
 		return client.DeployOptions{
 			Image: "debian:latest",
 			Name:  name,
-			Cmd:   []string{"bash", "-c", "for i in $(seq 1 30); do echo \"tick $i\"; sleep 1; done"},
+			Cmd:   []string{"bash", "-c", "trap 'exit 0' TERM; for i in $(seq 1 200); do echo \"tick $i\"; sleep 1 & wait $!; done"},
 			Env:   env,
 		}
 	},
