@@ -8,6 +8,16 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// ErrInUse is returned when a resource cannot be deleted because it is referenced by another.
+type ErrInUse struct {
+	Resource   string
+	ReferencedBy string
+}
+
+func (e *ErrInUse) Error() string {
+	return fmt.Sprintf("%q is used by %q", e.Resource, e.ReferencedBy)
+}
+
 // Store provides thread-safe access to the configuration and persists changes to disk.
 type Store struct {
 	mu   sync.RWMutex
@@ -67,6 +77,13 @@ func (s *Store) DeleteSecret(key string) error {
 	defer s.mu.Unlock()
 	if _, ok := s.cfg.Secrets[key]; !ok {
 		return fmt.Errorf("secret %q not found", key)
+	}
+	for workerName, wc := range s.cfg.Workers {
+		for _, secret := range wc.Secrets {
+			if secret == key {
+				return &ErrInUse{Resource: key, ReferencedBy: workerName}
+			}
+		}
 	}
 	delete(s.cfg.Secrets, key)
 	return s.save()

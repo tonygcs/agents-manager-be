@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"agentsmanager/pkg/config"
@@ -80,10 +81,16 @@ func (h *SecretsHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *SecretsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	key := r.PathValue("key")
-	if err := h.store.DeleteSecret(key); err != nil {
-		http.Error(w, "secret not found", http.StatusNotFound)
+	err := h.store.DeleteSecret(key)
+	if err == nil {
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	var inUse *config.ErrInUse
+	if errors.As(err, &inUse) {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
+	}
+	http.Error(w, "secret not found", http.StatusNotFound)
 }
 
