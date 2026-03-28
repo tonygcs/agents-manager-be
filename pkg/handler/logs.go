@@ -2,10 +2,10 @@ package handler
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/algorath-software/workerd/pkg/client"
+	"github.com/rs/zerolog/log"
 )
 
 type logLine struct {
@@ -32,7 +32,7 @@ func (h *LogsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ch, err := h.client.Logs(r.Context(), containerID, true)
 	if err != nil {
-		log.Printf("logs failed for container %s: %v", containerID, err)
+		log.Error().Err(err).Str("container", containerID).Msg("logs failed")
 		http.Error(w, "failed to get logs", http.StatusInternalServerError)
 		return
 	}
@@ -41,7 +41,7 @@ func (h *LogsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	enc := json.NewEncoder(w)
 	for l := range ch {
 		if l.Err != nil {
-			log.Printf("logs stream error for container %s: %v", containerID, l.Err)
+			log.Error().Err(l.Err).Str("container", containerID).Msg("logs stream error")
 			return
 		}
 		if err := enc.Encode(logLine{Stream: l.Stream, Line: l.Line}); err != nil {

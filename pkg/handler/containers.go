@@ -2,10 +2,10 @@ package handler
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/algorath-software/workerd/pkg/client"
+	"github.com/rs/zerolog/log"
 )
 
 type containerItem struct {
@@ -27,7 +27,7 @@ func NewContainersHandler(c *client.Client) *ContainersHandler {
 func (h *ContainersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	containers, err := h.client.List(r.Context())
 	if err != nil {
-		log.Printf("list containers failed: %v", err)
+		log.Error().Err(err).Msg("list containers failed")
 		http.Error(w, "failed to list containers", http.StatusInternalServerError)
 		return
 	}
@@ -57,7 +57,7 @@ func (h *ContainerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	containers, err := h.client.List(r.Context())
 	if err != nil {
-		log.Printf("list containers failed: %v", err)
+		log.Error().Err(err).Msg("list containers failed")
 		http.Error(w, "failed to get container", http.StatusInternalServerError)
 		return
 	}

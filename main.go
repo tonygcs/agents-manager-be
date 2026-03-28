@@ -1,26 +1,30 @@
 package main
 
 import (
-	"log"
 	"maps"
 	"net/http"
+	"os"
 	"slices"
 
 	"agentsmanager/pkg/config"
 	"agentsmanager/pkg/handler"
 
 	"github.com/algorath-software/workerd/pkg/client"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
 	cfg, err := config.Load("etc/config.yaml")
 	if err != nil {
-		log.Fatalf("failed to load config: %v", err)
+		log.Fatal().Err(err).Msg("failed to load config")
 	}
 
 	workerdClient, err := client.New(cfg.Workerd.Addr)
 	if err != nil {
-		log.Fatalf("failed to connect to workerd at %s: %v", cfg.Workerd.Addr, err)
+		log.Fatal().Err(err).Str("addr", cfg.Workerd.Addr).Msg("failed to connect to workerd")
 	}
 	defer workerdClient.Close()
 
@@ -34,6 +38,8 @@ func main() {
 	mux.Handle("GET /containers/{id}/logs", handler.NewLogsHandler(workerdClient))
 	mux.Handle("DELETE /containers/{id}", handler.NewRemoveHandler(workerdClient))
 
-	log.Printf("server listening on %s", cfg.Server.Addr)
-	log.Fatal(http.ListenAndServe(cfg.Server.Addr, mux))
+	log.Info().Str("addr", cfg.Server.Addr).Msg("server listening")
+	if err := http.ListenAndServe(cfg.Server.Addr, mux); err != nil {
+		log.Fatal().Err(err).Msg("server stopped")
+	}
 }

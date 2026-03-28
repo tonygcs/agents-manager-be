@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/algorath-software/workerd/pkg/client"
+	"github.com/rs/zerolog/log"
 )
 
 type RemoveHandler struct {
@@ -20,11 +20,11 @@ func (h *RemoveHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	containerID := r.PathValue("id")
 
 	if err := h.client.Stop(r.Context(), containerID, 60); err != nil {
-		log.Printf("stop failed for container %s: %v", containerID, err)
+		log.Error().Err(err).Str("container", containerID).Msg("stop failed")
 	}
 
 	if err := h.client.Remove(r.Context(), containerID, true); err != nil {
-		log.Printf("remove failed for container %s: %v", containerID, err)
+		log.Error().Err(err).Str("container", containerID).Msg("remove failed")
 		http.Error(w, "failed to remove container", http.StatusInternalServerError)
 		return
 	}
@@ -39,13 +39,13 @@ func (h *RemoveHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "request cancelled", http.StatusServiceUnavailable)
 			return
 		case <-timeout:
-			log.Printf("timed out waiting for container %s to be removed", containerID)
+			log.Error().Str("container", containerID).Msg("timed out waiting for container removal")
 			http.Error(w, "timed out waiting for container removal", http.StatusInternalServerError)
 			return
 		case <-ticker.C:
 			containers, err := h.client.List(r.Context())
 			if err != nil {
-				log.Printf("list failed while polling removal of container %s: %v", containerID, err)
+				log.Error().Err(err).Str("container", containerID).Msg("list failed while polling removal")
 				continue
 			}
 			found := false
@@ -56,7 +56,7 @@ func (h *RemoveHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			if !found {
-				log.Printf("removed container %s", containerID)
+				log.Info().Str("container", containerID).Msg("removed")
 				w.WriteHeader(http.StatusNoContent)
 				return
 			}

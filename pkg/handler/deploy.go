@@ -3,7 +3,6 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"net/http"
 	"strings"
 	"text/template"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/algorath-software/workerd/pkg/client"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
 
 type deployRequest struct {
@@ -68,7 +68,7 @@ func (h *DeployHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		var err error
 		cmd[i], err = applyTemplate(part, name)
 		if err != nil {
-			log.Printf("template error in cmd for worker %s: %v", req.WorkerName, err)
+			log.Error().Err(err).Str("worker", req.WorkerName).Msg("template error in cmd")
 			http.Error(w, "deploy failed", http.StatusInternalServerError)
 			return
 		}
@@ -78,13 +78,13 @@ func (h *DeployHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for k, v := range workerCfg.Labels {
 		key, err := applyTemplate(k, name)
 		if err != nil {
-			log.Printf("template error in label key for worker %s: %v", req.WorkerName, err)
+			log.Error().Err(err).Str("worker", req.WorkerName).Msg("template error in label key")
 			http.Error(w, "deploy failed", http.StatusInternalServerError)
 			return
 		}
 		val, err := applyTemplate(v, name)
 		if err != nil {
-			log.Printf("template error in label value for worker %s: %v", req.WorkerName, err)
+			log.Error().Err(err).Str("worker", req.WorkerName).Msg("template error in label value")
 			http.Error(w, "deploy failed", http.StatusInternalServerError)
 			return
 		}
@@ -106,12 +106,12 @@ func (h *DeployHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.client.Deploy(r.Context(), opts)
 	if err != nil {
-		log.Printf("deploy failed for worker %s: %v", req.WorkerName, err)
+		log.Error().Err(err).Str("worker", req.WorkerName).Msg("deploy failed")
 		http.Error(w, "deploy failed", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("deployed worker %s: container %s", req.WorkerName, result.ID)
+	log.Info().Str("worker", req.WorkerName).Str("container", result.ID).Msg("deployed")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(deployResponse{ContainerID: result.ID})
 }
