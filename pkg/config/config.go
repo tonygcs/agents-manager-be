@@ -1,10 +1,18 @@
 package config
 
 import (
+	"fmt"
 	"os"
 
 	"gopkg.in/yaml.v3"
 )
+
+type WorkerConfig struct {
+	Image   string            `yaml:"image"`
+	Cmd     []string          `yaml:"cmd"`
+	Labels  map[string]string `yaml:"labels"`
+	Secrets []string          `yaml:"secrets"`
+}
 
 type Config struct {
 	Workerd struct {
@@ -13,9 +21,20 @@ type Config struct {
 	Server struct {
 		Addr string `yaml:"addr"`
 	} `yaml:"server"`
-	GitHub struct {
-		Token string `yaml:"token"`
-	} `yaml:"github"`
+	Secrets map[string]string       `yaml:"secrets"`
+	Workers map[string]WorkerConfig `yaml:"workers"`
+}
+
+func (c Config) validate() error {
+	// Secrets.
+	for workerName, workerCfg := range c.Workers {
+		for _, key := range workerCfg.Secrets {
+			if _, ok := c.Secrets[key]; !ok {
+				return fmt.Errorf("missing secret %q required by worker %q", key, workerName)
+			}
+		}
+	}
+	return nil
 }
 
 func Load(path string) (Config, error) {
@@ -25,5 +44,9 @@ func Load(path string) (Config, error) {
 		return cfg, err
 	}
 	defer f.Close()
-	return cfg, yaml.NewDecoder(f).Decode(&cfg)
+	err = yaml.NewDecoder(f).Decode(&cfg)
+	if err != nil {
+		return cfg, err
+	}
+	return cfg, cfg.validate()
 }

@@ -5,25 +5,15 @@ import (
 	"net/http"
 )
 
-type WorkerType string
-
-const (
-	WorkerTypeOpencodeNode WorkerType = "opencode-node"
-	WorkerTypeCountdown    WorkerType = "countdown"
-)
-
-var workerTypes = []WorkerType{
-	WorkerTypeOpencodeNode,
-	WorkerTypeCountdown,
+type WorkersHandler struct {
+	names []string
 }
 
-type WorkersHandler struct{}
-
-func NewWorkersHandler() *WorkersHandler {
-	return &WorkersHandler{}
+func NewWorkersHandler(workers []string) *WorkersHandler {
+	return &WorkersHandler{names: workers}
 }
 
 func (h *WorkersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(workerTypes)
+	json.NewEncoder(w).Encode(h.names)
 }

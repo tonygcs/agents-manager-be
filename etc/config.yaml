@@ -4,5 +4,25 @@ workerd:
 server:
   addr: ":8080"
 
-github:
-  token: "<your-token-here>"
+secrets:
+  GITHUB_TOKEN: "<your-token-here>"
+
+workers:
+  opencode-node:
+    image: opencode-worker-node:latest
+    cmd:
+      - sh
+      - -c
+      - "trap 'exit 0' TERM; opencode web --hostname 0.0.0.0 --mdns-domain {{name}}.localhost & wait $!"
+    labels:
+      "traefik.enable": "true"
+      "traefik.http.routers.{{name}}.rule": "Host(`{{name}}.localhost`)"
+      "traefik.http.services.{{name}}.loadbalancer.server.port": "4096"
+    secrets:
+      - GITHUB_TOKEN
+  countdown:
+    image: debian:latest
+    cmd:
+      - bash
+      - -c
+      - "trap 'exit 0' TERM; for i in $(seq 1 200); do echo \"tick $i\"; sleep 1 & wait $!; done"

@@ -2,54 +2,36 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
+	"strings"
+
+	"agentsmanager/pkg/config"
 
 	"github.com/algorath-software/workerd/pkg/client"
 	"github.com/google/uuid"
 )
 
 type deployRequest struct {
-	WorkerName WorkerType `json:"workerName"`
+	WorkerName string `json:"workerName"`
 }
 
 type deployResponse struct {
 	ContainerID string `json:"containerId"`
 }
 
-// workerOptions maps a worker name to a function that builds DeployOptions for a given container name and env.
-var workerOptions = map[WorkerType]func(name string, env []string) client.DeployOptions{
-	WorkerTypeOpencodeNode: func(name string, env []string) client.DeployOptions {
-		return client.DeployOptions{
-			Image: "opencode-worker-node:latest",
-			Name:  name,
-			Cmd:   []string{"sh", "-c", fmt.Sprintf("trap 'exit 0' TERM; opencode web --hostname 0.0.0.0 --mdns-domain %s.localhost & wait $!", name)},
-			Env:   env,
-			Labels: map[string]string{
-				"traefik.enable":                                              "true",
-				"traefik.http.routers." + name + ".rule":                      "Host(`" + name + ".localhost`)",
-				"traefik.http.services." + name + ".loadbalancer.server.port": "4096",
-			},
-		}
-	},
-	WorkerTypeCountdown: func(name string, env []string) client.DeployOptions {
-		return client.DeployOptions{
-			Image: "debian:latest",
-			Name:  name,
-			Cmd:   []string{"bash", "-c", "trap 'exit 0' TERM; for i in $(seq 1 200); do echo \"tick $i\"; sleep 1 & wait $!; done"},
-			Env:   env,
-		}
-	},
+func applyTemplate(s, name string) string {
+	return strings.ReplaceAll(s, "{{name}}", name)
 }
 
 type DeployHandler struct {
-	client      *client.Client
-	githubToken string
+	client  *client.Client
+	workers map[string]config.WorkerConfig
+	secrets map[string]string
 }
 
-func NewDeployHandler(c *client.Client, githubToken string) *DeployHandler {
-	return &DeployHandler{client: c, githubToken: githubToken}
+func NewDeployHandler(c *client.Client, workers map[string]config.WorkerConfig, secrets map[string]string) *DeployHandler {
+	return &DeployHandler{client: c, workers: workers, secrets: secrets}
 }
 
 func (h *DeployHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -59,24 +41,45 @@ func (h *DeployHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	buildOptions, ok := workerOptions[req.WorkerName]
+	workerCfg, ok := h.workers[req.WorkerName]
 	if !ok {
 		http.Error(w, "worker not found", http.StatusNotFound)
 		return
 	}
 
 	name := uuid.NewString()
-	env := []string{
-		"GITHUB_TOKEN=" + h.githubToken,
+
+	cmd := make([]string, len(workerCfg.Cmd))
+	for i, part := range workerCfg.Cmd {
+		cmd[i] = applyTemplate(part, name)
 	}
-	result, err := h.client.Deploy(r.Context(), buildOptions(name, env))
+
+	labels := make(map[string]string, len(workerCfg.Labels))
+	for k, v := range workerCfg.Labels {
+		labels[applyTemplate(k, name)] = applyTemplate(v, name)
+	}
+
+	env := make([]string, 0, len(workerCfg.Secrets))
+	for _, key := range workerCfg.Secrets {
+		env = append(env, key+"="+h.secrets[key])
+	}
+
+	opts := client.DeployOptions{
+		Image:  workerCfg.Image,
+		Name:   name,
+		Cmd:    cmd,
+		Env:    env,
+		Labels: labels,
+	}
+
+	result, err := h.client.Deploy(r.Context(), opts)
 	if err != nil {
-		log.Printf("deploy failed for worker %s: %v", string(req.WorkerName), err)
+		log.Printf("deploy failed for worker %s: %v", req.WorkerName, err)
 		http.Error(w, "deploy failed", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("deployed worker %s: container %s", string(req.WorkerName), result.ID)
+	log.Printf("deployed worker %s: container %s", req.WorkerName, result.ID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(deployResponse{ContainerID: result.ID})
 }

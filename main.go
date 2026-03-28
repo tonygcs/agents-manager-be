@@ -2,7 +2,9 @@ package main
 
 import (
 	"log"
+	"maps"
 	"net/http"
+	"slices"
 
 	"agentsmanager/pkg/config"
 	"agentsmanager/pkg/handler"
@@ -22,9 +24,11 @@ func main() {
 	}
 	defer workerdClient.Close()
 
+	workerNames := slices.Sorted(maps.Keys(cfg.Workers))
+
 	mux := http.NewServeMux()
-	mux.Handle("GET /workers", handler.NewWorkersHandler())
-	mux.Handle("POST /deploy", handler.NewDeployHandler(workerdClient, cfg.GitHub.Token))
+	mux.Handle("GET /workers", handler.NewWorkersHandler(workerNames))
+	mux.Handle("POST /deploy", handler.NewDeployHandler(workerdClient, cfg.Workers, cfg.Secrets))
 	mux.Handle("GET /containers", handler.NewContainersHandler(workerdClient))
 	mux.Handle("GET /containers/{id}/logs", handler.NewLogsHandler(workerdClient))
 	mux.Handle("DELETE /containers/{id}", handler.NewRemoveHandler(workerdClient))
