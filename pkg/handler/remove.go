@@ -3,6 +3,7 @@ package handler
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/algorath-software/workerd/pkg/client"
 )
@@ -18,7 +19,7 @@ func NewRemoveHandler(c *client.Client) *RemoveHandler {
 func (h *RemoveHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	containerID := r.PathValue("id")
 
-	if err := h.client.Stop(r.Context(), containerID, 5); err != nil {
+	if err := h.client.Stop(r.Context(), containerID, 60); err != nil {
 		log.Printf("stop failed for container %s: %v", containerID, err)
 	}
 
@@ -28,6 +29,37 @@ func (h *RemoveHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("removed container %s", containerID)
-	w.WriteHeader(http.StatusNoContent)
+	// Poll until the container is no longer listed.
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+	timeout := time.After(30 * time.Second)
+	for {
+		select {
+		case <-r.Context().Done():
+			http.Error(w, "request cancelled", http.StatusServiceUnavailable)
+			return
+		case <-timeout:
+			log.Printf("timed out waiting for container %s to be removed", containerID)
+			http.Error(w, "timed out waiting for container removal", http.StatusInternalServerError)
+			return
+		case <-ticker.C:
+			containers, err := h.client.List(r.Context())
+			if err != nil {
+				log.Printf("list failed while polling removal of container %s: %v", containerID, err)
+				continue
+			}
+			found := false
+			for _, c := range containers {
+				if c.ID == containerID {
+					found = true
+					break
+				}
+			}
+			if !found {
+				log.Printf("removed container %s", containerID)
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+		}
+	}
 }
