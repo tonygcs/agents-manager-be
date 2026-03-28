@@ -1,10 +1,8 @@
 package main
 
 import (
-	"maps"
 	"net/http"
 	"os"
-	"slices"
 
 	"agentsmanager/pkg/config"
 	"agentsmanager/pkg/handler"
@@ -28,8 +26,6 @@ func main() {
 	}
 	defer workerdClient.Close()
 
-	workerNames := slices.Sorted(maps.Keys(store.Workers()))
-
 	mux := http.NewServeMux()
 	secrets := handler.NewSecretsHandler(store)
 	mux.HandleFunc("GET /config/secrets", secrets.List)
@@ -43,8 +39,8 @@ func main() {
 	mux.HandleFunc("GET /config/workers/{name}", workerDefs.Get)
 	mux.HandleFunc("PUT /config/workers/{name}", workerDefs.Update)
 	mux.HandleFunc("DELETE /config/workers/{name}", workerDefs.Delete)
-	mux.Handle("GET /workers", handler.NewWorkersHandler(workerNames))
-	mux.Handle("POST /deploy", handler.NewDeployHandler(workerdClient, store.Workers(), store.Secrets()))
+	mux.Handle("GET /workers", handler.NewWorkersHandler(store))
+	mux.Handle("POST /deploy", handler.NewDeployHandler(workerdClient, store))
 	mux.Handle("GET /containers", handler.NewContainersHandler(workerdClient))
 	mux.Handle("GET /containers/{id}", handler.NewContainerHandler(workerdClient))
 	mux.Handle("GET /containers/{id}/logs", handler.NewLogsHandler(workerdClient))

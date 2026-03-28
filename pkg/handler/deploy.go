@@ -39,13 +39,12 @@ func applyTemplate(s, name string) (string, error) {
 }
 
 type DeployHandler struct {
-	client  *client.Client
-	workers map[string]config.WorkerConfig
-	secrets map[string]string
+	client *client.Client
+	store  *config.Store
 }
 
-func NewDeployHandler(c *client.Client, workers map[string]config.WorkerConfig, secrets map[string]string) *DeployHandler {
-	return &DeployHandler{client: c, workers: workers, secrets: secrets}
+func NewDeployHandler(c *client.Client, store *config.Store) *DeployHandler {
+	return &DeployHandler{client: c, store: store}
 }
 
 func (h *DeployHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -55,12 +54,13 @@ func (h *DeployHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	workerCfg, ok := h.workers[req.WorkerName]
+	workerCfg, ok := h.store.Worker(req.WorkerName)
 	if !ok {
 		http.Error(w, "worker not found", http.StatusNotFound)
 		return
 	}
 
+	secrets := h.store.Secrets()
 	name := uuid.NewString()
 
 	cmd := make([]string, len(workerCfg.Cmd))
@@ -93,7 +93,7 @@ func (h *DeployHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	env := make([]string, 0, len(workerCfg.Secrets))
 	for _, key := range workerCfg.Secrets {
-		env = append(env, key+"="+h.secrets[key])
+		env = append(env, key+"="+secrets[key])
 	}
 
 	opts := client.DeployOptions{
