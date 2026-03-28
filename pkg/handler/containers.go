@@ -9,10 +9,11 @@ import (
 )
 
 type containerItem struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Image  string `json:"image"`
-	Status string `json:"status"`
+	ID     string            `json:"id"`
+	Name   string            `json:"name"`
+	Image  string            `json:"image"`
+	Status string            `json:"status"`
+	Labels map[string]string `json:"labels"`
 }
 
 type ContainersHandler struct {
@@ -33,7 +34,7 @@ func (h *ContainersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var list []containerItem
 	for _, c := range containers {
-		list = append(list, containerItem{ID: c.ID, Name: c.Name, Image: c.Image, Status: c.Status})
+		list = append(list, containerItem{ID: c.ID, Name: c.Name, Image: c.Image, Status: c.Status, Labels: c.Labels})
 	}
 	if list == nil {
 		list = []containerItem{}
@@ -64,7 +65,7 @@ func (h *ContainerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, c := range containers {
 		if c.ID == id {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(containerItem{ID: c.ID, Name: c.Name, Image: c.Image, Status: c.Status})
+			json.NewEncoder(w).Encode(containerItem{ID: c.ID, Name: c.Name, Image: c.Image, Status: c.Status, Labels: c.Labels})
 			return
 		}
 	}

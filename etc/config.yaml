@@ -18,6 +18,7 @@ workers:
       "traefik.enable": "true"
       "traefik.http.routers.{{name}}.rule": "Host(`{{name}}.localhost`)"
       "traefik.http.services.{{name}}.loadbalancer.server.port": "4096"
+      "agentmanager.description": "Access in the url http://{{name}}.localhost/"
     secrets:
       - GITHUB_TOKEN
   countdown:

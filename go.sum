@@ -2,10 +2,14 @@ github.com/algorath-software/workerd/pkg/api v0.1.0 h1:NmS++9oOnM/VMyv2FKnG25wnR
 github.com/algorath-software/workerd/pkg/api v0.1.0/go.mod h1:/ZEsd8+nHbaBLfxblzTZ+ky6/zZTXvs0EONst7t15gs=
 github.com/algorath-software/workerd/pkg/api v0.2.0 h1:/fMG+zUpvGm1SCmwKlxizs1cbXpVZ23XhMKNzYDJE2Y=
 github.com/algorath-software/workerd/pkg/api v0.2.0/go.mod h1:/ZEsd8+nHbaBLfxblzTZ+ky6/zZTXvs0EONst7t15gs=
+github.com/algorath-software/workerd/pkg/api v0.3.0 h1:gsK4fyetYVKNWpogKgxKUx8njxFwu4xrMep+05NV7hc=
+github.com/algorath-software/workerd/pkg/api v0.3.0/go.mod h1:/ZEsd8+nHbaBLfxblzTZ+ky6/zZTXvs0EONst7t15gs=
 github.com/algorath-software/workerd/pkg/client v0.1.0 h1:DB71k+jkQCUpbTxqEIvy9EDtg52sQpre5CPvGSJQgnE=
 github.com/algorath-software/workerd/pkg/client v0.1.0/go.mod h1:hyccJ/LFrFRjprcKYbrEu+fUEJxzf+txEKsHdpRTnTk=
 github.com/algorath-software/workerd/pkg/client v0.2.0 h1:slOVF4PFjYv6yFZm0Tf7q2EhyNuVgNz/3W3Z2n5qIBs=
 github.com/algorath-software/workerd/pkg/client v0.2.0/go.mod h1:hyccJ/LFrFRjprcKYbrEu+fUEJxzf+txEKsHdpRTnTk=
+github.com/algorath-software/workerd/pkg/client v0.3.0 h1:uELhIAlM1LitBZQQdS1YXdpUDC6NwmZAdWtwIqslHNU=
+github.com/algorath-software/workerd/pkg/client v0.3.0/go.mod h1:Eh7HwM2JkX38l0Uf68Y4PZ1Rgcni2BW3Zdk8Wwq5zMQ=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=
