@@ -9,9 +9,10 @@ import (
 )
 
 type containerItem struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Image string `json:"image"`
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Image  string `json:"image"`
+	Status string `json:"status"`
 }
 
 type ContainersHandler struct {
@@ -32,7 +33,7 @@ func (h *ContainersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var list []containerItem
 	for _, c := range containers {
-		list = append(list, containerItem{ID: c.ID, Name: c.Name, Image: c.Image})
+		list = append(list, containerItem{ID: c.ID, Name: c.Name, Image: c.Image, Status: c.Status})
 	}
 	if list == nil {
 		list = []containerItem{}
@@ -40,4 +41,33 @@ func (h *ContainersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(list)
+}
+
+type ContainerHandler struct {
+	client *client.Client
+}
+
+func NewContainerHandler(c *client.Client) *ContainerHandler {
+	return &ContainerHandler{client: c}
+}
+
+func (h *ContainerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	containers, err := h.client.List(r.Context())
+	if err != nil {
+		log.Printf("list containers failed: %v", err)
+		http.Error(w, "failed to get container", http.StatusInternalServerError)
+		return
+	}
+
+	for _, c := range containers {
+		if c.ID == id {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(containerItem{ID: c.ID, Name: c.Name, Image: c.Image, Status: c.Status})
+			return
+		}
+	}
+
+	http.Error(w, "container not found", http.StatusNotFound)
 }

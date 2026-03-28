@@ -30,6 +30,7 @@ func main() {
 	mux.Handle("GET /workers", handler.NewWorkersHandler(workerNames))
 	mux.Handle("POST /deploy", handler.NewDeployHandler(workerdClient, cfg.Workers, cfg.Secrets))
 	mux.Handle("GET /containers", handler.NewContainersHandler(workerdClient))
+	mux.Handle("GET /containers/{id}", handler.NewContainerHandler(workerdClient))
 	mux.Handle("GET /containers/{id}/logs", handler.NewLogsHandler(workerdClient))
 	mux.Handle("DELETE /containers/{id}", handler.NewRemoveHandler(workerdClient))
 
