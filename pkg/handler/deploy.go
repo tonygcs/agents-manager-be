@@ -16,7 +16,8 @@ import (
 )
 
 type deployRequest struct {
-	WorkerName string `json:"workerName"`
+	WorkerName string            `json:"workerName"`
+	Env        map[string]string `json:"env"`
 }
 
 type deployResponse struct {
@@ -113,9 +114,16 @@ func (h *DeployHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		labels[key] = val
 	}
 
-	env := make([]string, 0, len(workerCfg.Secrets))
+	envMap := make(map[string]string, len(workerCfg.Secrets)+len(req.Env))
 	for _, key := range workerCfg.Secrets {
-		env = append(env, key+"="+secrets[key])
+		envMap[key] = secrets[key]
+	}
+	for k, v := range req.Env {
+		envMap[k] = v
+	}
+	env := make([]string, 0, len(envMap))
+	for k, v := range envMap {
+		env = append(env, k+"="+v)
 	}
 
 	opts := client.DeployOptions{
