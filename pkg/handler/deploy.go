@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
+	"net"
 	"net/http"
 	"strings"
 	"text/template"
@@ -24,15 +25,32 @@ type deployResponse struct {
 
 var templateFuncs = template.FuncMap{
 	"split": strings.Split,
+	"rootdomain": func(host string) string {
+		knownTLDs := map[string]bool{
+			"com": true, "net": true, "org": true, "edu": true,
+			"gov": true, "io": true, "es": true, "uk": true,
+			"de": true, "fr": true, "it": true, "co": true,
+			"us": true, "ai": true, "app": true, "dev": true,
+			"me": true, "tv": true, "info": true, "biz": true,
+		}
+		parts := strings.Split(host, ".")
+		if len(parts) == 1 {
+			return host
+		}
+		if knownTLDs[parts[len(parts)-1]] {
+			return strings.Join(parts[len(parts)-2:], ".")
+		}
+		return parts[len(parts)-1]
+	},
 }
 
-func applyTemplate(s, name string) (string, error) {
+func applyTemplate(s, name, domain string) (string, error) {
 	tmpl, err := template.New("").Funcs(templateFuncs).Parse(s)
 	if err != nil {
 		return "", err
 	}
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, map[string]string{"name": name}); err != nil {
+	if err := tmpl.Execute(&buf, map[string]string{"name": name, "domain": domain}); err != nil {
 		return "", err
 	}
 	return buf.String(), nil
@@ -62,11 +80,15 @@ func (h *DeployHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	secrets := h.store.Secrets()
 	name := uuid.NewString()
+	domain, _, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		domain = r.Host
+	}
 
 	cmd := make([]string, len(workerCfg.Cmd))
 	for i, part := range workerCfg.Cmd {
 		var err error
-		cmd[i], err = applyTemplate(part, name)
+		cmd[i], err = applyTemplate(part, name, domain)
 		if err != nil {
 			log.Error().Err(err).Str("worker", req.WorkerName).Msg("template error in cmd")
 			http.Error(w, "deploy failed", http.StatusInternalServerError)
@@ -76,13 +98,13 @@ func (h *DeployHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	labels := make(map[string]string, len(workerCfg.Labels))
 	for k, v := range workerCfg.Labels {
-		key, err := applyTemplate(k, name)
+		key, err := applyTemplate(k, name, domain)
 		if err != nil {
 			log.Error().Err(err).Str("worker", req.WorkerName).Msg("template error in label key")
 			http.Error(w, "deploy failed", http.StatusInternalServerError)
 			return
 		}
-		val, err := applyTemplate(v, name)
+		val, err := applyTemplate(v, name, domain)
 		if err != nil {
 			log.Error().Err(err).Str("worker", req.WorkerName).Msg("template error in label value")
 			http.Error(w, "deploy failed", http.StatusInternalServerError)

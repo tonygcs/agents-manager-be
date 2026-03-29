@@ -13,12 +13,12 @@ workers:
     cmd:
       - sh
       - -c
-      - 'trap ''exit 0'' TERM; opencode web --hostname 0.0.0.0 --mdns-domain {{index (split .name "-") 0}}.localhost & wait $!'
+      - "trap 'exit 0' TERM; opencode web --hostname 0.0.0.0 & wait $!"
     labels:
       "traefik.enable": "true"
-      'traefik.http.routers.{{index (split .name "-") 0}}.rule': 'Host(`{{index (split .name "-") 0}}.localhost`)'
+      'traefik.http.routers.{{index (split .name "-") 0}}.rule': 'HostRegexp(`{{index (split .name "-") 0}}\\.[^.]+$`)'
       'traefik.http.services.{{index (split .name "-") 0}}.loadbalancer.server.port': "4096"
-      "agentmanager.description": 'Access in the url http://{{index (split .name "-") 0}}.localhost/'
+      "agentmanager.description": 'Access in the url http://{{index (split .name "-") 0}}.{{rootdomain .domain}}/'
     secrets:
       - GITHUB_TOKEN
   countdown:
