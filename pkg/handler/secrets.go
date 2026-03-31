@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"agentsmanager/pkg/config"
+
 	"github.com/rs/zerolog/log"
 )
 
@@ -19,18 +20,14 @@ func NewSecretsHandler(store *config.Store) *SecretsHandler {
 
 func (h *SecretsHandler) List(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(h.store.Secrets())
-}
 
-func (h *SecretsHandler) Get(w http.ResponseWriter, r *http.Request) {
-	key := r.PathValue("key")
-	value, ok := h.store.Secret(key)
-	if !ok {
-		http.Error(w, "secret not found", http.StatusNotFound)
-		return
+	// Clear all secret values
+	s := h.store.Secrets()
+	for k := range s {
+		s[k] = ""
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{key: value})
+
+	json.NewEncoder(w).Encode(s)
 }
 
 func (h *SecretsHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -93,4 +90,3 @@ func (h *SecretsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 	http.Error(w, "secret not found", http.StatusNotFound)
 }
-

@@ -30,7 +30,6 @@ func main() {
 	secrets := handler.NewSecretsHandler(store)
 	mux.HandleFunc("GET /config/secrets", secrets.List)
 	mux.HandleFunc("POST /config/secrets", secrets.Create)
-	mux.HandleFunc("GET /config/secrets/{key}", secrets.Get)
 	mux.HandleFunc("PUT /config/secrets/{key}", secrets.Update)
 	mux.HandleFunc("DELETE /config/secrets/{key}", secrets.Delete)
 	workerDefs := handler.NewWorkerDefinitionsHandler(store)

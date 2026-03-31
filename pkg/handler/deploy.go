@@ -79,7 +79,6 @@ func (h *DeployHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secrets := h.store.Secrets()
 	name := uuid.NewString()
 	domain, _, err := net.SplitHostPort(r.Host)
 	if err != nil {
@@ -114,15 +113,18 @@ func (h *DeployHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		labels[key] = val
 	}
 
-	envMap := make(map[string]string, len(workerCfg.Secrets)+len(req.Env))
-	for _, key := range workerCfg.Secrets {
-		envMap[key] = secrets[key]
-	}
+	secrets := h.store.Secrets()
+	envMap := make(map[string]string, len(req.Env))
 	for k, v := range req.Env {
 		envMap[k] = v
 	}
 	env := make([]string, 0, len(envMap))
 	for k, v := range envMap {
+		if strings.TrimSpace(v) == "" {
+			if v2, ok := secrets[k]; ok {
+				v = v2
+			}
+		}
 		env = append(env, k+"="+v)
 	}
 
