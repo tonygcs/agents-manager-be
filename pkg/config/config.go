@@ -8,10 +8,11 @@ import (
 )
 
 type WorkerConfig struct {
-	Image   string            `yaml:"image"`
-	Cmd     []string          `yaml:"cmd"`
-	Labels  map[string]string `yaml:"labels"`
-	Secrets []string          `yaml:"secrets"`
+	Image       string            `yaml:"image"`
+	Description string            `yaml:"description"`
+	Cmd         []string          `yaml:"cmd"`
+	Labels      map[string]string `yaml:"labels"`
+	Secrets     []string          `yaml:"secrets"`
 }
 
 type Config struct {

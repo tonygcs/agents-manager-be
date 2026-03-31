@@ -10,6 +10,7 @@ secrets:
 workers:
   opencode-node:
     image: opencode-worker-node:latest
+    description: AI coding agent powered by opencode, running on Debian with Node.js support for JavaScript and TypeScript projects.
     cmd:
       - sh
       - -c
@@ -23,6 +24,7 @@ workers:
       - GITHUB_TOKEN
   countdown:
     image: debian:latest
+    description: Debian servier that executes a countdown until 200 seconds. It ends after those 200 seconds.
     cmd:
       - bash
       - -c
