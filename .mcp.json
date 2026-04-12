@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "agents-manager": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "AGENTS_MANAGER_URL=http://192.168.1.64:8081",
+        "agents-manager-mcp"
+      ]
+    }
+  }
+}
